@@ -510,6 +510,11 @@ internal sealed class MetadataDummyAssemblyGenerator : IDisposable {
         string backingFieldName = $"<{property.Name}>k__BackingField";
         FieldDefinition? backingField = getter.DeclaringType.Fields.FirstOrDefault(field =>
             field.Name == backingFieldName && field.FieldType.FullName == property.PropertyType.FullName);
+
+        backingField ??= getter.DeclaringType.Fields.FirstOrDefault(field =>
+            field.Name == char.ToLowerInvariant(property.Name[0]) + property.Name[1..] + "_" &&
+            field.FieldType.FullName == property.PropertyType.FullName);
+        
         if (backingField == null) {
             FieldAttributes attributes = FieldAttributes.Private;
             if (getter.IsStatic)
