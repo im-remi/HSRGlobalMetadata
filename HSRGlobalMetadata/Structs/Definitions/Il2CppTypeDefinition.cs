@@ -7,9 +7,12 @@ namespace HSRGlobalMetadata.Structs.Definitions;
 public class Il2CppTypeDefinition : MetadataBase {
     private readonly int _index;
 
+    public uint Token { get; private set; }
+
     public Il2CppTypeDefinition(int index) : base(MetadataContext.Instance.Metadata,
         MetadataHeader.Instance.TypeDefinitionsOffset + index * MetadataConstants.TypeDefinitionSize) {
         _index = index;
+        Token = CustomAttributeTokens.TypeToken(_index);
         Populate();
     }
 

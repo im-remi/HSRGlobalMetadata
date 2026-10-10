@@ -10,6 +10,7 @@ public class Il2CppMethodDefinition : MetadataBase {
     public Il2CppMethodDefinition(int index) : base(MetadataContext.Instance.Metadata,
         MetadataHeader.Instance.MethodOffset + index * MetadataConstants.MethodDefinitionSize) {
         _index = index;
+        Token = CustomAttributeTokens.MethodToken(_index);
         Populate();
     }
     
@@ -39,6 +40,8 @@ public class Il2CppMethodDefinition : MetadataBase {
 
     public string Name;
 
+    public int Index => _index;
+    public uint Token;
  
     protected override void PostProcess() {
         ulong lcd = ((1410124276UL * ((738455933UL * ((ulong)(12769UL * (ulong)_index) ^ 0x33914937UL)) >> 23)) >> 21) + 1908176993;

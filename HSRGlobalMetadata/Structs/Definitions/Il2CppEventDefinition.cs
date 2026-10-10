@@ -6,6 +6,7 @@ namespace HSRGlobalMetadata.Structs.Definitions;
 public class Il2CppEventDefinition : MetadataBase {
     private readonly int _index;
 
+    public uint Token { get; private set; }
     public string Name { get; private set; }
 
     [MetadataTag(0x00, MetadataOperation.XOR, 0x78981CB)]
@@ -26,6 +27,7 @@ public class Il2CppEventDefinition : MetadataBase {
     public Il2CppEventDefinition(int index) : base(MetadataContext.Instance.Metadata,
         MetadataHeader.Instance.EventsOffset + MetadataConstants.EventDefinitionSize * index) {
         _index = index;
+        Token = CustomAttributeTokens.EventToken(_index);
         Populate();
     }
 

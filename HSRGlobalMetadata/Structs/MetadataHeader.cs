@@ -9,6 +9,9 @@ public class MetadataHeader : MetadataBase {
 
     [MetadataTag(0x08, MetadataOperation.SUB, 149860775)]
     public int StringLiteralDataOffset { get; private set; }
+
+    [MetadataTag(0x18, MetadataOperation.SUB, 422736276)]
+    public int CustomAttributeRangeOffset { get; private set; }
     
     [MetadataTag(0x20, MetadataOperation.SUB, 1292050039)]
     public int FieldsOffset { get; private set; }
@@ -78,6 +81,9 @@ public class MetadataHeader : MetadataBase {
     
     [MetadataTag(0x1E4, MetadataOperation.XOR, 0x720FEF70)]
     public int MethodSpecsSize { get; private set; }
+
+    [MetadataTag(0x1EC, MetadataOperation.SUB, 1487263151)]
+    public int CustomAttributeTypesOffset { get; private set; }
     
     [MetadataTag(0x1F0, MetadataOperation.XOR, 0x56C7D20D)]
     public int StringLiteralOffset { get; private set; }

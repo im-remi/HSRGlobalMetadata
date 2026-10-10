@@ -10,6 +10,7 @@ internal static class MetadataConstants {
     public const int ImageDefinitionSize = 40;
     public const int MethodDefinitionSize = 26;
     public const int FieldDefinitionSize = 8;
+    public const int FieldDefaultValueDefinitionSize = 12;
     public const int PropertyDefinitionSize = 10;
     public const int EventDefinitionSize = 14;
     public const int ParameterDefinitionSize = 8;
@@ -21,6 +22,7 @@ internal static class MetadataConstants {
     public const int GenericClassDefinitionSize = 8;
     public const int GenericInstDefinitionSize = 16;
     public const int ArrayDefinitionSize = 32;
+    public const int CustomAttributeRangeSize = 8;
 
     public static int Il2CppTypeDefinitionSize = Il2CppType.DetectTypeSize();
 

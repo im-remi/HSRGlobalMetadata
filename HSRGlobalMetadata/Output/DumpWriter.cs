@@ -83,6 +83,7 @@ public static class DumpWriter {
         }
         
         if (indent != 0) sb.AppendLine();
+        WriteCustomAttributes(sb, pad, typeDef.Token);
         sb.Append(pad).Append(typeAttrs).Append(' ').Append(typeName);
     
         var inherits = new List<string>();
@@ -101,7 +102,7 @@ public static class DumpWriter {
         if (inherits.Count > 0)
             sb.Append(" : ").Append(string.Join(", ", inherits));
     
-        sb.Append(constraintSuffix).AppendLine(" {");
+        sb.Append(constraintSuffix).Append(" {").AppendLine($" // Token: 0x{typeDef.Token:X}");
 
         if (typeDef.FieldCount > 0) {
             var fieldOffsetIndex = typeDef.GetFieldOffsetIndex();
@@ -163,8 +164,10 @@ public static class DumpWriter {
             string add = ev.AddMethodIndex != -1 ? "add; " : "";
             string remove = ev.RemoveMethodIndex != -1 ? "remove; " : "";
             string raise = ev.RaiseMethodIndex != -1 ? "raise; " : "";
+            WriteCustomAttributes(sb, pad, ev.Token);
             sb.Append(pad).Append(eventAttrs).Append(" event ").Append(typeName)
-              .Append(' ').Append(ev.Name).Append(" { ").Append(add).Append(remove).Append(raise).AppendLine("}");
+              .Append(' ').Append(ev.Name).Append(" { ").Append(add).Append(remove).Append(raise).Append('}')
+              .Append(" // Token: 0x").AppendLine(ev.Token.ToString("X"));
         }
     }
 
@@ -189,9 +192,10 @@ public static class DumpWriter {
 
             string getStr = prop.GetMethodIndex != -1 ? "get; " : "";
             string setStr = prop.SetMethodIndex != -1 ? "set; " : "";
+            WriteCustomAttributes(sb, pad, prop.Token);
             sb.Append(pad).Append(typeName).Append(' ').Append(prop.Name)
               .Append(" { ").Append(getStr).Append(setStr)
-              .AppendLine("}");
+              .Append('}').Append(" // Token: 0x").AppendLine(prop.Token.ToString("X"));
         }
     }
 
@@ -200,6 +204,7 @@ public static class DumpWriter {
         string attrs = AttributeFormatter.FormatField((FieldAttributes)fieldDef.Type.Attrs);
         string typeName = fieldDef.Type.Name();
 
+        WriteCustomAttributes(sb, pad, fieldDef.Token);
         sb.Append(pad).Append(attrs).Append(' ').Append(typeName).Append(' ').Append(fieldDef.Name);
     
         if (((FieldAttributes)fieldDef.Type.Attrs & FieldAttributes.Literal) != 0 &&
@@ -226,7 +231,7 @@ public static class DumpWriter {
                 sb.Append(staticValue);
         }
 
-        sb.Append(" // Offset: 0x").AppendLine(fieldDef.Offset.ToString("X"));
+        sb.Append(" // Offset: 0x").Append(fieldDef.Offset.ToString("X")).Append(", Token: 0x").AppendLine(fieldDef.Token.ToString("X"));
     }
         
     static void WriteMethods(StringBuilder sb, Il2CppTypeDefinition typeDef, int indent) {
@@ -295,13 +300,15 @@ public static class DumpWriter {
             ? method.MethodPointer - imageBase
             : method.MethodPointer;
 
+        WriteCustomAttributes(sb, pad, method.Token);
         sb.Append(pad).Append(attrs).Append(' ')
           .Append(method.ReturnType.Name()).Append(' ')
           .Append(methodName).Append(genericSuffix)
           .Append('(').Append(paramString).Append(')')
           .Append(constraintSuffix)
           .Append(" {} // VA: 0x").Append(method.MethodPointer.ToString("X"))
-          .Append(", RVA: 0x").AppendLine(rva.ToString("X"));
+          .Append(", RVA: 0x").Append(rva.ToString("X"))
+          .Append(", Token: 0x").AppendLine(method.Token.ToString("X"));
     }
 
     static void WriteAssemblyInfo(StreamWriter writer) {
@@ -309,6 +316,16 @@ public static class DumpWriter {
             var imageDef = MetadataCache.Images[i];
             writer.WriteLine(
                 $"// Assembly {i + 1}: {imageDef.Name}, Type Count: {imageDef.TypeCount}, Type Start: {imageDef.TypeStart}");
+        }
+    }
+
+    static void WriteCustomAttributes(StringBuilder sb, string pad, uint token) {
+        if (MetadataCache.CustomAttributeRanges.TryGetValue(token, out var range)) {
+            for (int i = 0; i < range.Count; i++) {
+                var customAttributeType = MetadataCache.CustomAttributeTypes[i + range.Start];
+    
+                sb.Append(pad).Append('[').Append(customAttributeType.Type.Name().Split('.').Last()).AppendLine("]");
+            }
         }
     }
 }

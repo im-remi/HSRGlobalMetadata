@@ -25,6 +25,7 @@ public class Il2CppFieldDefinition : MetadataBase {
     public int TypeIndex { get; private set; }
 
     public uint Offset { get; private set; }
+    public uint Token { get; private set; }
 
     public string Name;
     public Il2CppType Type;
@@ -36,6 +37,8 @@ public class Il2CppFieldDefinition : MetadataBase {
             (_index - _fieldStart + _fieldOffsetStart) * MetadataConstants.IndexSize);
         TypeIndex += lcd;
         NameIndex += lcd;
+
+        Token = CustomAttributeTokens.FieldToken(_index);
 
         Name = StringProcessor.Decrypt(NameIndex);
         Type = Il2CppType.FromIndex(TypeIndex);

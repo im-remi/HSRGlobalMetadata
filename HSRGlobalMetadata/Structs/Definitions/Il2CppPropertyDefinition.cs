@@ -6,6 +6,8 @@ namespace HSRGlobalMetadata.Structs.Definitions;
 public class Il2CppPropertyDefinition : MetadataBase {
     private readonly int _index;
 
+    public uint Token { get; private set; }
+
     [MetadataTag(0x00, MetadataOperation.XOR, 0x6199063C)]
     public int NameIndex { get; set; }
 
@@ -20,6 +22,7 @@ public class Il2CppPropertyDefinition : MetadataBase {
     public Il2CppPropertyDefinition(int index) : base(MetadataContext.Instance.Metadata,
         MetadataHeader.Instance.PropertiesOffset + MetadataConstants.PropertyDefinitionSize * index) {
         _index = index;
+        Token = CustomAttributeTokens.PropertyToken(_index);
         Populate();
     }
 
