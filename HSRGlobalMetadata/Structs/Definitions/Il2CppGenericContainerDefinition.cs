@@ -1,3 +1,4 @@
+using HSRGlobalMetadata.Configuration;
 using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Structs.Definitions;
@@ -7,7 +8,8 @@ public class Il2CppGenericContainerDefinition : MetadataBase {
     
     public List<Il2CppGenericParameterDefinition> Parameters { get; private set; }
 
-    public Il2CppGenericContainerDefinition(int index) : base(MetadataContext.Instance.Metadata, MetadataHeader.Instance.GenericContainerOffset + 16 * index) {
+    public Il2CppGenericContainerDefinition(int index) : base(MetadataContext.Instance.Metadata,
+        MetadataHeader.Instance.GenericContainerOffset + MetadataConstants.GenericContainerDefinitionSize * index) {
         _index = index;
         Populate();
     }

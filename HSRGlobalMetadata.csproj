@@ -9,4 +9,18 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Mono.Cecil" Version="0.11.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="HSRGlobalMetadata\DummyDll\Resources\Il2CppDummyDll.dll"
+                          LogicalName="HSRGlobalMetadata.Resources.Il2CppDummyDll.dll" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="sample\**\*.cs" />
+        <Compile Remove="tests\**\*.cs" />
+    </ItemGroup>
+
 </Project>

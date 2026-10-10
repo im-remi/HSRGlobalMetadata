@@ -3,9 +3,14 @@
 A proof-of-concept static analysis tool to extract metadata information from `Honkai: Star Rail`.
 
 ## About
-This tool generates a `dump.cs` and `stringliterals.json` file extracted from the metadata of the game, and from the `GameAssembly.dll` binary. It works completely statically, which means launching the game process is not required.
+HSRGlobalMetadata extracts metadata from the game's metadata files and `GameAssembly.dll` without launching the game.
 
-The tool has been tested to work with the `OSPRODWin4.5.0` version of the game.
+This tool generates:
+- `dump.cs` - a C# representation of the extracted metadata.
+- `stringliterals.json` - string literals and their addresses inside the binary.
+- Dummy DLL assemblies - stub assemblies generated from the extracted metadata. They can be imported into tools such as dnSpy or ILSpy.
+
+The tool has been tested to work with the `OSPRODWin4.6.0` and `OSPRODWin4.5.0` version of the game.
 
 ## Important
 This tool is a proof-of-concept. Some features may be missing, it may be unstable, or break with game updates. Older versions are not supported, and newer versions can break the tool.
@@ -17,7 +22,17 @@ Builds of this project will not be provided.
 
 To run it, simply do `dotnet run <path_to_game_folder>`.
 
-For faster runtime: `dotnet run -c Release <path_to_game_folder>`
+For faster execution: `dotnet run -c Release <path_to_game_folder>`
+
+### CLI Options
+
+| Option | Description |
+| ---|---|
+| `--output <dir>` | Override output directory (default: `<game-directory>/dump`). |
+| `--dummy-dll` | Generate Dummy DLL assemblies. |
+| `--no-dump` | Skip `dump.cs` generation. |
+| `--no-string-literals` | Skip `stringliterals.json` generation. |
+| `--debug` | Print exception details when an error occurs. |
 
 ## Disclaimer
 This tool is only for educational purposes. I do not take any responsibility for the usage of this tool.

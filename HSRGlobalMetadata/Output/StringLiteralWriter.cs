@@ -1,11 +1,16 @@
 using System.Text.Json;
-
+using HSRGlobalMetadata.Configuration;
 using HSRGlobalMetadata.Structs;
 using HSRGlobalMetadata.Structs.Definitions;
 
+namespace HSRGlobalMetadata.Output;
+
 public static class StringLiteralWriter {
   public static void Write(string inputDir) {
-    string outputDir = Path.Combine(inputDir, "dump");
+    WriteToDirectory(Path.Combine(inputDir, "dump"));
+  }
+
+  public static void WriteToDirectory(string outputDir) {
     Directory.CreateDirectory(outputDir);
     string outputPath = Path.Combine(outputDir, "stringliterals.json");
 
@@ -14,7 +19,8 @@ public static class StringLiteralWriter {
     for (int i = 0; i < MetadataTables.Instance.StringLiteralCount; i++) {
       var literal = new Il2CppStringLiteral(i);
       stringLiterals.Add(new StringLiteralEntry{
-        Address = $"0x{(ulong)MetadataTables.Instance.StringLiteralRva + 8 * (ulong)i:X}",
+        Address = $"0x{(ulong)MetadataTables.Instance.StringLiteralRva +
+          MetadataConstants.PointerSize * (ulong)i:X}",
         Value = literal.Value
       });
     }

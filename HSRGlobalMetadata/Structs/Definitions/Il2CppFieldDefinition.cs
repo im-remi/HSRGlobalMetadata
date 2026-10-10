@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using HSRGlobalMetadata.Configuration;
 using HSRGlobalMetadata.Structs.Runtime;
 using HSRGlobalMetadata.Utils;
 
@@ -9,7 +10,8 @@ public class Il2CppFieldDefinition : MetadataBase {
     private readonly int _fieldStart;
     private readonly int _fieldOffsetStart;
 
-    public Il2CppFieldDefinition(int fieldStart, int fieldOffsetStart, int index) : base(MetadataContext.Instance.Metadata, MetadataHeader.Instance.FieldsOffset + index * 8) {
+    public Il2CppFieldDefinition(int fieldStart, int fieldOffsetStart, int index) : base(MetadataContext.Instance.Metadata,
+        MetadataHeader.Instance.FieldsOffset + index * MetadataConstants.FieldDefinitionSize) {
         _index = index;
         _fieldStart = fieldStart;
         _fieldOffsetStart = fieldOffsetStart;
@@ -30,36 +32,53 @@ public class Il2CppFieldDefinition : MetadataBase {
     protected override void PostProcess() {
         var lcd = -1388221511 - 744344320 * (_index + 1954887780);
 
-        Offset = BitConverter.ToUInt32(_bytes, MetadataHeader.Instance.FieldOffsetsOffset + (_index - _fieldStart + _fieldOffsetStart) * 4);
+        Offset = BitConverter.ToUInt32(_bytes, MetadataHeader.Instance.FieldOffsetsOffset +
+            (_index - _fieldStart + _fieldOffsetStart) * MetadataConstants.IndexSize);
         TypeIndex += lcd;
         NameIndex += lcd;
 
         Name = StringProcessor.Decrypt(NameIndex);
         Type = Il2CppType.FromIndex(TypeIndex);
     }
-    
-    public object GetFieldStaticValue() {
-        if (((FieldAttributes)Type.Attrs & FieldAttributes.Literal) == 0) return 0;
-    
-        if (!MetadataCache.FieldDefaultValues.TryGetValue(_index, out var entry))
-            return 0;
-        
-        if (entry.typeIndex == -1) return 0;
 
-        var type = Il2CppType.FromIndex(entry.typeIndex);
-        var baseOffset = MetadataHeader.Instance.FieldAndParameterDefaultValueDataOffset + entry.dataOffset;
-        var metadata = MetadataContext.Instance.Metadata;
+    public bool TryGetFieldStaticValue(out object? value) {
+        value = null;
+        if (((FieldAttributes)Type.Attrs & FieldAttributes.Literal) == 0)
+            return false;
+        if (!MetadataCache.FieldDefaultValues.TryGetValue(_index, out var entry) || entry.typeIndex == -1)
+            return false;
 
-        return type.Type switch {
-            2 or 4 or 5 => metadata[baseOffset],
-            3 or 6 or 7 => BitConverter.ToUInt16(metadata, baseOffset),
-            8 or 9 or 17 or 0x2C => BitConverter.ToInt32(metadata, baseOffset),
+        Il2CppType type = Il2CppType.FromIndex(entry.typeIndex);
+        int baseOffset = checked(MetadataHeader.Instance.FieldAndParameterDefaultValueDataOffset + entry.dataOffset);
+        byte[] metadata = MetadataContext.Instance.Metadata;
+
+        value = type.Type switch {
+            0x02 => metadata[baseOffset] != 0,
+            0x03 => (char)BitConverter.ToUInt16(metadata, baseOffset),
+            0x04 => unchecked((sbyte)metadata[baseOffset]),
+            0x05 => metadata[baseOffset],
+            0x06 => BitConverter.ToInt16(metadata, baseOffset),
+            0x07 => BitConverter.ToUInt16(metadata, baseOffset),
+            0x08 => BitConverter.ToInt32(metadata, baseOffset),
+            0x09 => BitConverter.ToUInt32(metadata, baseOffset),
+            0x0A => BitConverter.ToInt64(metadata, baseOffset),
+            0x0B => BitConverter.ToUInt64(metadata, baseOffset),
             0x0C => BitConverter.ToSingle(metadata, baseOffset),
             0x0D => BitConverter.ToDouble(metadata, baseOffset),
-            10 or 11 => BitConverter.ToInt64(metadata, baseOffset),
-            14 => $"\"{Encoding.UTF8.GetString(metadata, baseOffset + 4, BitConverter.ToInt32(metadata, baseOffset))}\"",
-            18 or 21 or 28 or 29 => BitConverter.ToInt32(metadata, baseOffset),
-            _ => 0
+            0x0E => ReadStringConstant(metadata, baseOffset),
+            0x11 or 0x12 => BitConverter.ToInt32(metadata, baseOffset),
+            0x18 => new IntPtr(BitConverter.ToInt64(metadata, baseOffset)),
+            0x19 => new UIntPtr(BitConverter.ToUInt64(metadata, baseOffset)),
+            0x1C or 0x1D => null,
+            _ => null
         };
+        return true;
+    }
+
+    private static string ReadStringConstant(byte[] metadata, int baseOffset) {
+        int length = BitConverter.ToInt32(metadata, baseOffset);
+        if (length < 0 || baseOffset + 4 > metadata.Length - length)
+            throw new InvalidDataException($"String field constant at 0x{baseOffset:X} has invalid length {length}.");
+        return Encoding.UTF8.GetString(metadata, baseOffset + 4, length);
     }
 }

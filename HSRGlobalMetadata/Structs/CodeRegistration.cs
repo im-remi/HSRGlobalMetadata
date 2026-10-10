@@ -6,8 +6,6 @@ public class CodeRegistration : MetadataBase {
     private static CodeRegistration? _instance;
     public static CodeRegistration Instance => _instance ?? throw new Exception("Not initialized");
 
-    private const long ImageBase = 0x180000000;
-
     public CodeRegistration(byte[] bytes) : base(bytes) {
         Populate();
     }
@@ -19,7 +17,7 @@ public class CodeRegistration : MetadataBase {
         _instance = new CodeRegistration(bytes);
     }
 
-    private long ToFileOffset(long va) => va - ImageBase;
+    private long ToFileOffset(long va) => va - checked((long)PEHelper.ImageBase);
     private long ReadPtr(int offset) => ToFileOffset(BitConverter.ToInt64(_bytes, offset));
 
     public long MethodPointer { get; private set; }

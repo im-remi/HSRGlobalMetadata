@@ -6,8 +6,6 @@ public class MetadataRegistration : MetadataBase {
     private static MetadataRegistration? _instance;
     public static MetadataRegistration Instance => _instance ?? throw new Exception("Not initialized");
 
-    private const long ImageBase = 0x180000000;
-
     public MetadataRegistration(byte[] bytes) : base(bytes) {
         Populate();
     }
@@ -18,7 +16,7 @@ public class MetadataRegistration : MetadataBase {
         _instance = new MetadataRegistration(bytes);
     }
 
-    private long ToFileOffset(long va) => va - ImageBase;
+    private long ToFileOffset(long va) => va - checked((long)PEHelper.ImageBase);
     private long ReadPtr(int offset) => ToFileOffset(BitConverter.ToInt64(_bytes, offset));
 
     [MetadataTag(0x48, MetadataOperation.SUB, 1455078204)]

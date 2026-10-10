@@ -3,6 +3,8 @@ using System.Text;
 using HSRGlobalMetadata.Structs;
 using HSRGlobalMetadata.Structs.Definitions;
 using HSRGlobalMetadata.Structs.Runtime;
+using HSRGlobalMetadata.Configuration;
+using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Output;
 
@@ -10,12 +12,15 @@ public static class DumpWriter {
     private static readonly string[] _pads = Enumerable.Range(0, 20).Select(i => new string(' ', i * 4)).ToArray();
     
     public static void Write(string inputDir) {
-        string outputDir = Path.Combine(inputDir, "dump");
+        WriteToDirectory(Path.Combine(inputDir, "dump"));
+    }
+
+    public static void WriteToDirectory(string outputDir) {
         Directory.CreateDirectory(outputDir);
         string outputPath = Path.Combine(outputDir, "dump.cs");
         
         var header = MetadataHeader.Instance;
-        int imageCount = header.ImagesSize / 40;
+        int imageCount = header.ImagesSize / MetadataConstants.ImageDefinitionSize;
         
         using var writer = new StreamWriter(outputPath, false, Encoding.UTF8, bufferSize: 1 << 20);
 
@@ -85,9 +90,10 @@ public static class DumpWriter {
             inherits.Add(typeDef.Parent.Name());
         if (typeDef.InterfaceCount > 0) {
             var metadata = MetadataContext.Instance.Metadata;
-            int baseOffset = header.InterfaceOffset + typeDef.InterfaceStart * 4;
+            int indexSize = MetadataConstants.IndexSize;
+            int baseOffset = header.InterfaceOffset + typeDef.InterfaceStart * indexSize;
             for (int k = 0; k < typeDef.InterfaceCount; k++) {
-                int typeInterface = MemoryMarshal.Read<int>(metadata.AsSpan(baseOffset + k * 4));
+                int typeInterface = MemoryMarshal.Read<int>(metadata.AsSpan(baseOffset + k * indexSize));
                 if (typeInterface != -1)
                     inherits.Add(Il2CppType.FromIndex(typeInterface).Name());
             }
@@ -117,9 +123,10 @@ public static class DumpWriter {
     
         if (typeDef.NestedTypeCount > 0) {
             var metadata = MetadataContext.Instance.Metadata;
-            int baseOffset = header.NestedTypesOffset + typeDef.NestedTypeStart * 4;
+            int indexSize = MetadataConstants.IndexSize;
+            int baseOffset = header.NestedTypesOffset + typeDef.NestedTypeStart * indexSize;
             for (int n = 0; n < typeDef.NestedTypeCount; n++) {
-                int nestedIndex = MemoryMarshal.Read<int>(metadata.AsSpan(baseOffset + n * 4));
+                int nestedIndex = MemoryMarshal.Read<int>(metadata.AsSpan(baseOffset + n * indexSize));
                 var nestedTypeDef = new Il2CppTypeDefinition(nestedIndex);
                 WriteType(sb, nestedTypeDef, imageDef, nestedIndex, header, indent + 1);
             }
@@ -195,8 +202,29 @@ public static class DumpWriter {
 
         sb.Append(pad).Append(attrs).Append(' ').Append(typeName).Append(' ').Append(fieldDef.Name);
     
-        if (((FieldAttributes)fieldDef.Type.Attrs & FieldAttributes.Literal) != 0)
-            sb.Append(" = ").Append(fieldDef.GetFieldStaticValue());
+        if (((FieldAttributes)fieldDef.Type.Attrs & FieldAttributes.Literal) != 0 &&
+            fieldDef.TryGetFieldStaticValue(out var staticValue)) {
+            sb.Append(" = ");
+
+            if (staticValue is string str)
+                sb.Append('"').Append(str.Replace("\\", "\\\\").Replace("\"", "\\\"")).Append('"');
+            else if (staticValue is char ch)
+                sb.Append('\'').Append(ch switch {
+                    '\\' => "\\\\",
+                    '\'' => "\\'",
+                    '\0' => "\\0",
+                    '\a' => "\\a",
+                    '\b' => "\\b",
+                    '\f' => "\\f",
+                    '\n' => "\\n",
+                    '\r' => "\\r",
+                    '\t' => "\\t",
+                    '\v' => "\\v",
+                    _ => ch.ToString()
+                }).Append('\'');
+            else
+                sb.Append(staticValue);
+        }
 
         sb.Append(" // Offset: 0x").AppendLine(fieldDef.Offset.ToString("X"));
     }
@@ -262,8 +290,9 @@ public static class DumpWriter {
 
         string attrs = isInterface ? "" : AttributeFormatter.FormatMethod((MethodAttributes)method.Flags);
 
-        long rva = method.MethodPointer > 0x180000000
-            ? method.MethodPointer - 0x180000000
+        long imageBase = checked((long)PEHelper.ImageBase);
+        long rva = method.MethodPointer > imageBase
+            ? method.MethodPointer - imageBase
             : method.MethodPointer;
 
         sb.Append(pad).Append(attrs).Append(' ')

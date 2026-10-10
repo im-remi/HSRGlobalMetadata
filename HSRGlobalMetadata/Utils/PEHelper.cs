@@ -7,6 +7,7 @@ public struct SectionTable {
 }
 
 public static class PEHelper {
+    public static ulong ImageBase;
     public static SectionTable[] sectionTables = [];
     
     public static ulong RvaToOffset(uint rva) {
@@ -40,21 +41,31 @@ public static class PEHelper {
         using (var reader = new BinaryReader(File.Open(dllPath, FileMode.Open, FileAccess.Read, FileShare.Read))) {
             reader.BaseStream.Seek(0x3C, SeekOrigin.Begin);
             uint peOffset = reader.ReadUInt32();
-        
+
             reader.BaseStream.Seek(peOffset, SeekOrigin.Begin);
             uint signature = reader.ReadUInt32();
             if (signature != 0x4550) {
                 throw new Exception("Invalid PE signature");
             }
-            
+
             _ = reader.ReadUInt16();
             ushort numberOfSections = reader.ReadUInt16();
             reader.ReadBytes(12);
             ushort optionalHeaderSize = reader.ReadUInt16();
             reader.ReadUInt16();
-        
-            reader.ReadBytes(optionalHeaderSize);
-        
+
+            long optionalHeaderStart = reader.BaseStream.Position;
+            ushort magic = reader.ReadUInt16();
+
+            ImageBase = magic switch {
+                0x20B => ReadImageBase64(reader, optionalHeaderStart),
+                0x10B => ReadImageBase32(reader, optionalHeaderStart),
+                _ => throw new InvalidDataException(
+                    $"Unsupported PE optional header magic: 0x{magic:X}")
+            };
+
+            reader.BaseStream.Seek(optionalHeaderStart + optionalHeaderSize, SeekOrigin.Begin);
+
             var sections = new SectionTable[numberOfSections];
             for (int i = 0; i < numberOfSections; i++) {
                 reader.ReadBytes(8);
@@ -66,9 +77,19 @@ public static class PEHelper {
             }
 
             sectionTables = sections;
-        
+
             return sections;
         }
+    }
+
+    private static ulong ReadImageBase64( BinaryReader reader, long optionalHeaderStart) {
+        reader.BaseStream.Seek(optionalHeaderStart + 0x18, SeekOrigin.Begin);
+        return reader.ReadUInt64();
+    }
+    
+    private static ulong ReadImageBase32(BinaryReader reader, long optionalHeaderStart) {
+        reader.BaseStream.Seek(optionalHeaderStart + 0x1C, SeekOrigin.Begin);
+        return reader.ReadUInt32();
     }
     
     public static byte[] ReadBytes(string path, long offset, int count) {

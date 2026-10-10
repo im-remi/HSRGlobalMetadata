@@ -1,10 +1,12 @@
+using HSRGlobalMetadata.Configuration;
 using HSRGlobalMetadata.Structs.Runtime;
 using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Structs.Definitions;
 
 public class Il2CppGenericFunctionDefinition : MetadataBase {
-    public Il2CppGenericFunctionDefinition(int index) : base(MetadataContext.Instance.Metadata, MetadataHeader.Instance.GenericMethodFunctionsDefsOffset + index * 12){
+    public Il2CppGenericFunctionDefinition(int index) : base(MetadataContext.Instance.Metadata,
+        MetadataHeader.Instance.GenericMethodFunctionsDefsOffset + index * MetadataConstants.GenericFunctionDefinitionSize){
         Populate();
     }
 

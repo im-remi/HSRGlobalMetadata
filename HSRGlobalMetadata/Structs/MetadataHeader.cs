@@ -1,12 +1,11 @@
-﻿using HSRGlobalMetadata.Utils;
+﻿using HSRGlobalMetadata.Configuration;
+using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Structs;
 
 public class MetadataHeader : MetadataBase {
     private static MetadataHeader? _instance;
     public static MetadataHeader Instance => _instance ?? throw new Exception("Not initialized");
-
-    public const int MetadataHeaderSize = 0x208;
 
     [MetadataTag(0x08, MetadataOperation.SUB, 149860775)]
     public int StringLiteralDataOffset { get; private set; }
@@ -91,13 +90,17 @@ public class MetadataHeader : MetadataBase {
     }
 
     public static void Initialize(string gameAssemblyPath) {
-        var headerOffset = PatternScanner.FindPatternInFile(gameAssemblyPath, "4D 48 59 00");
+        byte[] magic = BitConverter.GetBytes(MetadataConstants.MetadataMagic);
+        var headerOffset = PatternScanner.FindPatternInFile(gameAssemblyPath, magic, new[] { true, true, true, true });
         if (headerOffset == -1) {
-            Console.WriteLine("Failed to find GlobalMetadataHeaderPointer in binary");
-            return;
+            throw new InvalidDataException($"Failed to find metadata header magic {MetadataConstants.MetadataMagic} in GameAssembly.dll.");
         }
-        
-        byte[] bytes = new ArraySegment<byte>(MetadataContext.Instance.GameAssembly, (int)headerOffset, MetadataHeaderSize).ToArray();
+
+        int headerSize = MetadataConstants.HeaderSize;
+        if (headerOffset > MetadataContext.Instance.GameAssembly.Length - headerSize)
+            throw new InvalidDataException("Metadata header extends beyond GameAssembly.dll.");
+
+        byte[] bytes = new ArraySegment<byte>(MetadataContext.Instance.GameAssembly, (int)headerOffset, headerSize).ToArray();
 
         _instance = new MetadataHeader(bytes);
     }

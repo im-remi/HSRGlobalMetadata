@@ -1,3 +1,4 @@
+using HSRGlobalMetadata.Configuration;
 using HSRGlobalMetadata.Structs.Runtime;
 using HSRGlobalMetadata.Utils;
 
@@ -6,7 +7,8 @@ namespace HSRGlobalMetadata.Structs.Definitions;
 public class Il2CppMethodDefinition : MetadataBase {
     private readonly int _index;
 
-    public Il2CppMethodDefinition(int index) : base(MetadataContext.Instance.Metadata, MetadataHeader.Instance.MethodOffset + index * 26) {
+    public Il2CppMethodDefinition(int index) : base(MetadataContext.Instance.Metadata,
+        MetadataHeader.Instance.MethodOffset + index * MetadataConstants.MethodDefinitionSize) {
         _index = index;
         Populate();
     }
@@ -46,7 +48,8 @@ public class Il2CppMethodDefinition : MetadataBase {
         Flags = shuffled ^ (uint)((ushort)(lcd & 0xFFFF) | ((ushort)(lcd & 0xFFFF) << 16)) ^ 0x09F73733;
 
         var val = PEHelper.RvaToOffset((uint)CodeRegistration.Instance.MethodPointer);
-        MethodPointer = BitConverter.ToInt64(MetadataContext.Instance.GameAssembly, (int)val + _index * 8);
+        MethodPointer = BitConverter.ToInt64(MetadataContext.Instance.GameAssembly,
+            (int)val + _index * MetadataConstants.PointerSize);
         
         NameIndex ^= (int)lcd;
         ReturnTypeIndex ^= (int)lcd;
